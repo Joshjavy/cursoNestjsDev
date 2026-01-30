@@ -1,4 +1,4 @@
-#version: '3.8'  # Actualiza a versión más reciente [web:30]
+#version: '3.8'
 services:
   db:
     image: mongo:5
