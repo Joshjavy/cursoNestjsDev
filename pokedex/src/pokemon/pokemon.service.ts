@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
-import { Model } from 'mongoose';
+import { isValidObjectId, Model } from 'mongoose';
 import { Pokemon } from './entities/pokemon.entity';
 import { InjectModel } from '@nestjs/mongoose';
 
@@ -10,29 +10,43 @@ export class PokemonService {
   constructor(
     @InjectModel(Pokemon.name)
     private readonly repository: Model<Pokemon>
-  ){}
+  ) { }
 
   async create(createPokemonDto: CreatePokemonDto) {
     createPokemonDto.name = createPokemonDto.name.toLocaleLowerCase()
-    try{
+    try {
       const pokemon = await this.repository.create(createPokemonDto)
       return pokemon;
-    }catch(error){
-      if( error.code === 11000){
+    } catch (error: any) {
+      if (error.code === 11000) {
         throw new BadRequestException(`Pokemon repetido intente con otro`);
       }
-        throw new InternalServerErrorException(`No se puede crear el pokemon - revise el log del servidor`)
-      
+      throw new InternalServerErrorException(`No se puede crear el pokemon - revise el log del servidor`)
+
     }
-    
+
   }
 
   findAll() {
     return `This action returns all pokemon`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pokemon`;
+  async findOne(term: string) {
+    let pokemon:any;
+    if (!isNaN(+term)) {
+      pokemon = await this.repository.findOne({ no: term })
+    }
+
+    if (!pokemon && isValidObjectId(term)) {
+      pokemon = await this.repository.findById(term)
+    }
+
+    if (!pokemon) {
+      pokemon = await this.repository.findOne({ name: term.toLowerCase() })
+    }
+
+    if (!pokemon) throw new NotFoundException(`No resultados en la consulta`)
+    return pokemon
   }
 
   update(id: number, updatePokemonDto: UpdatePokemonDto) {
