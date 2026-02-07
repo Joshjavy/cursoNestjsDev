@@ -19,10 +19,7 @@ export class PokemonService {
       const pokemon = await this.repository.create(createPokemonDto)
       return pokemon;
     } catch (error: any) {
-      if (error.code === 11000) {
-        throw new BadRequestException(`Pokemon repetido intente con otro`);
-      }
-      throw new InternalServerErrorException(`No se puede crear el pokemon - revise el log del servidor`)
+      this.handleExceptions(error);
 
     }
 
@@ -33,7 +30,7 @@ export class PokemonService {
   }
 
   async findOne(term: string) {
-    let pokemon:any;
+    let pokemon: any;
     if (!isNaN(+term)) {
       pokemon = await this.repository.findOne({ no: term })
     }
@@ -50,19 +47,32 @@ export class PokemonService {
     return pokemon
   }
 
-  async update(term:string, updatePokemonDto: UpdatePokemonDto) {
-    
-    const pokemon = await this.findOne( term );
-    if(updatePokemonDto.name)
-      updatePokemonDto.name=updatePokemonDto.name.toLowerCase()
-    await pokemon.updateOne(updatePokemonDto)
+  async update(term: string, updatePokemonDto: UpdatePokemonDto) {
+    try {
+      const pokemon = await this.findOne(term);
+      if (updatePokemonDto.name)
+        updatePokemonDto.name = updatePokemonDto.name.toLowerCase()
+      await pokemon.updateOne(updatePokemonDto)
 
-    return {...pokemon.toJSON(),...updatePokemonDto};
-    
+      return { ...pokemon.toJSON(), ...updatePokemonDto };
+
+    } catch (error: any) {
+      this.handleExceptions(error);
+
+    }
 
   }
 
   remove(id: number) {
     return `This action removes a #${id} pokemon`;
+  }
+
+  private handleExceptions(error: any) {
+    if (error.code === 11000) {
+      throw new BadRequestException(`Pokemon repetido intente con otro`);
+    }
+    throw new InternalServerErrorException(`No se puede crear el pokemon - revise el log del servidor`)
+
+
   }
 }
